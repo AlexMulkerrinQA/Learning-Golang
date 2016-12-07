@@ -1,0 +1,26 @@
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+div.webApplet {
+	clear:left; float:left; 
+	border-style:ridge; border-color:#e0f4ff; 
+	background-color:#d0e4fe; 
+	padding:0px 10px 10px 10px;
+}
+</style>
+</head>
+<body>
+
+<div class="webApplet">
+
+<h1>{{.Title}}</h1>
+
+<p>[<a href="/edit/{{.Title}}">edit</a>]</p>
+
+<div>{{ printf "%s" .Body}}</div>
+
+</div>
+
+</body>
+</html>

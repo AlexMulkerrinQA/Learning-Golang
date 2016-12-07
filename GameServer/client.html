@@ -1,0 +1,99 @@
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+div.webApplet {
+	clear:left; float:left; 
+	border-style:ridge; border-color:#e0f4ff; 
+	background-color:#d0e4fe; 
+	padding:0px 10px 10px 10px;
+}
+</style>
+<script>
+
+const colour = ["#4A429C","#EFE7A5","#BDB552","#CFE7A5",
+                "#6BA542","#267F00","#3F7F62","#7F743F",
+                "#606060","#C0C0C0",,"#E0E0E0","#FFFFFF"];
+
+var terrain = [];
+var c;
+var ctx;
+var sqSize = 16;
+function init() {
+	c = document.getElementById("clientCanvas");
+	ctx = c.getContext("2d");
+	ctx.fillStyle="#ffffff";
+	ctx.fillRect(0,0,c.width,c.height);
+	
+	createNullMap();
+	drawMap();
+}
+
+function createNullMap() {
+	for (var j=0; j < 9; j++) {
+		terrain[j]=[];
+		for (var i=0; i < 9; i++) {
+			terrain[j][i] = 0;
+		}
+	}
+}
+
+function drawMap() {
+	for (var j=0; j < 9; j++) {
+		for (var i=0; i < 9; i++) {
+			ctx.fillStyle=colour[terrain[j][i]];
+			ctx.fillRect(i*sqSize,j*sqSize,sqSize,sqSize);
+		}
+	}
+}
+
+function getServerMap() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("demo").innerHTML +=
+      "\n"+this.responseText;
+	  
+	  terrain = JSON.parse(this.responseText);
+	  drawMap();
+    }
+  };
+  xhttp.open("GET", "/map", true);
+  xhttp.send();
+}
+
+function sendAjax(type) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("demo").innerHTML +=
+      "\n"+this.responseText;
+    }
+  };
+  xhttp.open("GET", type, true);
+  xhttp.send();
+}
+</script>
+</head>
+<body onload="init()">
+<div class="webApplet">
+
+<h1>Multiplayer Roguelike</h1>
+
+<canvas id="clientCanvas">
+HTML5 Canvas goes here
+</canvas>
+<br>
+Server Requests:
+<button type="button" onclick="getServerMap()">map</button>
+<button type="button" onclick="sendAjax('/player')">player</button>
+<button type="button" onclick="sendAjax('/update?player=1')">update</button>
+<button type="button" onclick="sendAjax('/move?direc=left')">move</button>
+<br>
+<textarea id="demo" rows="5" cols="40">Server response:</textarea>
+
+</div>
+
+</div>
+</body>
+</html>

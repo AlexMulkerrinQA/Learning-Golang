@@ -1,0 +1,6 @@
+Lets write a game api!
+
+/map : sends map data to client
+/player : gives client a player id
+/update-<id> : returns info about player <id>
+/move-<id> : sends move command to player <id>
