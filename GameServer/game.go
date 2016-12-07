@@ -10,8 +10,33 @@ type GameState struct {
 	Agents []Agent
 }
 
-func (this *GameState) update() {
+func (this *GameState) update(cmd [10]string) {
 	for i:=0; i<9; i++ {
+		switch cmd[i] {
+			case "left" :
+				this.Agents[i].X -= 1
+				if this.Agents[i].X<0 {
+					this.Agents[i].X = 8
+				}
+			case "right" :
+				this.Agents[i].X += 1
+				if this.Agents[i].X>8 {
+					this.Agents[i].X = 0
+				}
+			case "up" :
+			this.Agents[i].Y -= 1
+				if this.Agents[i].Y<0 {
+					this.Agents[i].Y = 8
+				}
+			case "down" :
+				this.Agents[i].Y += 1
+				if this.Agents[i].Y>8 {
+					this.Agents[i].Y = 0
+				}
+		}
+	}
+
+	/* for i:=0; i<9; i++ {
 		x := this.Agents[i].X
 		x = x + rand.Intn(3) -1
 		if x<0 {
@@ -28,7 +53,7 @@ func (this *GameState) update() {
 		}
 		this.Agents[i].X = x
 		this.Agents[i].Y = y
-	}
+	} */
 }
 
 type Agent struct {

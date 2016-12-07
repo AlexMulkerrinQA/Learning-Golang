@@ -22,6 +22,7 @@ const colourPlayer = ["#ff0000","#00ff00","#0000ff","#ffff00",
 				
 var terrain = [];
 var agents = [];
+var playerID = 0;
 var c;
 var ctx;
 var sqSize = 16;
@@ -31,8 +32,37 @@ function init() {
 	createNullMap();
 	refreshDisplay();
 	
+	document.onkeydown = function (event) {
+        var keyCode;
+        if (event === null) {
+            keyCode = window.event.keyCode;
+        } else {
+            keyCode = event.keyCode;
+        }
+        switch (keyCode) {
+			case 65:
+            case 37: // a or left arrow
+                sendMoveCommand("left");
+                break;
+            case 38:
+            case 87: // w or up arrow
+                sendMoveCommand("up");
+                break;
+            case 39:
+            case 68: // d or right arrow
+                sendMoveCommand("right");
+                break;
+            case 40:
+            case 83: // s or down arrow
+                sendMoveCommand("down");
+				break;
+		}
+	}
+	
+	
 	getServerMap();
-	setInterval(update, 500);
+	getPlayerID();
+	setInterval(update, 50);
 }
 
 function createNullMap() {
@@ -70,16 +100,18 @@ function drawAgents() {
 		var y = agents[i].Y;
 		ctx.fillStyle=colourPlayer[i];
 		ctx.fillRect(x*sqSize+2,y*sqSize+2,sqSize-4,sqSize-4);
-
 	}
+	ctx.fillStyle=colourPlayer[i];
+	ctx.fillRect(x*sqSize+2,y*sqSize+2,sqSize-4,sqSize-4);
+	
 }
 
 function getServerMap() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("demo").innerHTML +=
-      "\n"+this.responseText;
+      //document.getElementById("demo").innerHTML +=
+      //"\n"+this.responseText;
 	  
 	  terrain = JSON.parse(this.responseText);
 	  refreshDisplay();
@@ -93,10 +125,25 @@ function getServerAgents() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
+      //document.getElementById("demo").innerHTML +=
+      //"\n"+this.responseText;
+	  
+	  agents = JSON.parse(this.responseText);
+	  refreshDisplay();
+    }
+  };
+  xhttp.open("GET", "/update", true);
+  xhttp.send();
+}
+
+function getPlayerID() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
       document.getElementById("demo").innerHTML +=
       "\n"+this.responseText;
 	  
-	  agents = JSON.parse(this.responseText);
+	  playerID = this.responseText;
 	  refreshDisplay();
     }
   };
@@ -104,15 +151,16 @@ function getServerAgents() {
   xhttp.send();
 }
 
-function sendAjax(type) {
+function sendMoveCommand(move) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
       document.getElementById("demo").innerHTML +=
       "\n"+this.responseText;
+	  refreshDisplay();
     }
   };
-  xhttp.open("GET", type, true);
+  xhttp.open("GET", "/move?id="+playerID+"&direc="+move, true);
   xhttp.send();
 }
 </script>
@@ -127,10 +175,10 @@ HTML5 Canvas goes here
 </canvas>
 <br>
 Server Requests:
-<button type="button" onclick="getServerMap()">map</button>
-<button type="button" onclick="getServerAgents()">player</button>
-<button type="button" onclick="sendAjax('/update?player=1')">update</button>
-<button type="button" onclick="sendAjax('/move?direc=left')">move</button>
+<button type="button" onclick="sendMoveCommand('left')">left</button>
+<button type="button" onclick="sendMoveCommand('up')">up</button>
+<button type="button" onclick="sendMoveCommand('down')">down</button>
+<button type="button" onclick="sendMoveCommand('right')">right</button>
 <br>
 <textarea id="demo" rows="5" cols="40">Server response:</textarea>
 
