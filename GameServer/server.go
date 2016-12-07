@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"time"
 )
 
 func gameLoadHandler(w http.ResponseWriter, r *http.Request) {
@@ -17,12 +18,13 @@ func gameLoadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func mapHandler(w http.ResponseWriter, r *http.Request) {
-	result, _ := json.Marshal(terrain)
+	result, _ := json.Marshal(game.Terrain)
 	fmt.Fprintf(w, "%s", string(result))
 }
 
 func playerHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "TODO: player %s", r.URL.Path[1:])
+	result, _ := json.Marshal(game.Agents)
+	fmt.Fprintf(w, "%s", string(result))
 }
 
 func updateHandler(w http.ResponseWriter, r *http.Request) {
@@ -34,17 +36,24 @@ func moveHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "TODO: moving %s Direction:%s", r.URL.Path[1:], direc)
 }
 
-var terrain [][]int
+var game GameState
 
 func main() {
-	terrain = Game()
+	game = Game()
 	
-
-
 	http.HandleFunc("/", gameLoadHandler)
 	http.HandleFunc("/map/", mapHandler)
 	http.HandleFunc("/player/", playerHandler)
 	http.HandleFunc("/update", updateHandler)
 	http.HandleFunc("/move", moveHandler)
-	http.ListenAndServe(":8080", nil)
+	go http.ListenAndServe(":80", nil)
+	
+	tick := time.Tick(time.Second)
+	for  {
+		// wait for clock tick
+		<-tick
+		gp :=&game
+		gp.update()
+		fmt.Println("update!")
+	}
 }

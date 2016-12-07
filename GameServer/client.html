@@ -7,6 +7,7 @@ div.webApplet {
 	border-style:ridge; border-color:#e0f4ff; 
 	background-color:#d0e4fe; 
 	padding:0px 10px 10px 10px;
+	font-family: Arial;
 }
 </style>
 <script>
@@ -15,18 +16,23 @@ const colour = ["#4A429C","#EFE7A5","#BDB552","#CFE7A5",
                 "#6BA542","#267F00","#3F7F62","#7F743F",
                 "#606060","#C0C0C0",,"#E0E0E0","#FFFFFF"];
 
+const colourPlayer = ["#ff0000","#00ff00","#0000ff","#ffff00",
+                "#00ffff","#ff00ff","#ffffff","#000000",
+                "#ffaa00","#ff00aa",,"#aa00ff","#aaff00"];
+				
 var terrain = [];
+var agents = [];
 var c;
 var ctx;
 var sqSize = 16;
 function init() {
 	c = document.getElementById("clientCanvas");
 	ctx = c.getContext("2d");
-	ctx.fillStyle="#ffffff";
-	ctx.fillRect(0,0,c.width,c.height);
-	
 	createNullMap();
-	drawMap();
+	refreshDisplay();
+	
+	getServerMap();
+	setInterval(update, 500);
 }
 
 function createNullMap() {
@@ -38,12 +44,33 @@ function createNullMap() {
 	}
 }
 
+function update() {
+	getServerAgents();
+}
+
+function refreshDisplay() {
+	ctx.fillStyle="#ffffff";
+	ctx.fillRect(0,0,c.width,c.height);
+	drawMap();
+	drawAgents();
+}
+
 function drawMap() {
 	for (var j=0; j < 9; j++) {
 		for (var i=0; i < 9; i++) {
 			ctx.fillStyle=colour[terrain[j][i]];
 			ctx.fillRect(i*sqSize,j*sqSize,sqSize,sqSize);
 		}
+	}
+}
+
+function drawAgents() {
+	for (var i=0; i < agents.length; i++) {
+		var x = agents[i].X;
+		var y = agents[i].Y;
+		ctx.fillStyle=colourPlayer[i];
+		ctx.fillRect(x*sqSize+2,y*sqSize+2,sqSize-4,sqSize-4);
+
 	}
 }
 
@@ -55,10 +82,25 @@ function getServerMap() {
       "\n"+this.responseText;
 	  
 	  terrain = JSON.parse(this.responseText);
-	  drawMap();
+	  refreshDisplay();
     }
   };
   xhttp.open("GET", "/map", true);
+  xhttp.send();
+}
+
+function getServerAgents() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("demo").innerHTML +=
+      "\n"+this.responseText;
+	  
+	  agents = JSON.parse(this.responseText);
+	  refreshDisplay();
+    }
+  };
+  xhttp.open("GET", "/player", true);
   xhttp.send();
 }
 
@@ -86,7 +128,7 @@ HTML5 Canvas goes here
 <br>
 Server Requests:
 <button type="button" onclick="getServerMap()">map</button>
-<button type="button" onclick="sendAjax('/player')">player</button>
+<button type="button" onclick="getServerAgents()">player</button>
 <button type="button" onclick="sendAjax('/update?player=1')">update</button>
 <button type="button" onclick="sendAjax('/move?direc=left')">move</button>
 <br>

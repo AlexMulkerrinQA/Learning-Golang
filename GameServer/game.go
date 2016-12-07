@@ -5,10 +5,46 @@ import (
 	"math/rand"
 )
 
-func Game() [][]int{
+type GameState struct {
+	Terrain [][]int
+	Agents []Agent
+}
+
+func (this *GameState) update() {
+	for i:=0; i<9; i++ {
+		x := this.Agents[i].X
+		x = x + rand.Intn(3) -1
+		if x<0 {
+			x=0
+		} else if x>=9 {
+			x=8
+		}
+		y := this.Agents[i].Y
+		y = y + rand.Intn(3) -1
+		if y<0 {
+			y=0
+		} else if y>=9 {
+			y=8
+		}
+		this.Agents[i].X = x
+		this.Agents[i].Y = y
+	}
+}
+
+type Agent struct {
+	X int
+	Y int
+}
+
+func Game() GameState{
 	var terrain = createMap(9, 9)
 	printGrid(terrain)
-	return terrain
+	var agents []Agent
+	for i:=0; i<9; i++ {
+		a := Agent{rand.Intn(9), rand.Intn(9)}
+		agents = append(agents, a)
+	}
+	return GameState{terrain, agents}
 }
 
 func createMap(width, height int) [][]int {
