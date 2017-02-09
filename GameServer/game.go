@@ -5,71 +5,113 @@ import (
 	"math/rand"
 )
 
+type mapChange struct {
+	X int
+	Y int
+	Value int
+	ttl int
+}
+
 type GameState struct {
 	Terrain [][]int
 	Agents []Agent
+	Changes []mapChange
 }
-
-func (this *GameState) update(cmd [10]string) {
-	for i:=0; i<9; i++ {
-		switch cmd[i] {
-			case "left" :
-				this.Agents[i].X -= 1
-				if this.Agents[i].X<0 {
-					this.Agents[i].X = 8
-				}
-			case "right" :
-				this.Agents[i].X += 1
-				if this.Agents[i].X>8 {
-					this.Agents[i].X = 0
-				}
-			case "up" :
-			this.Agents[i].Y -= 1
-				if this.Agents[i].Y<0 {
-					this.Agents[i].Y = 8
-				}
-			case "down" :
-				this.Agents[i].Y += 1
-				if this.Agents[i].Y>8 {
-					this.Agents[i].Y = 0
-				}
+func (this *GameState) update(cmd map[int]string) {
+	for i:=0; i<len(this.Agents); i++ {
+		if this.Agents[i].Active {
+			switch cmd[i] {
+				case "left" :
+					this.tryMove(i, -1, 0)
+				case "right" :
+					this.tryMove(i, 1, 0)
+				case "up" :
+					this.tryMove(i, 0, -1)
+				case "down" :
+					this.tryMove(i, 0, 1)
+				case "pick" :
+					this.tryPick(i)
+					
+				case "drop" :
+					this.tryDrop(i)
+			}
 		}
 	}
+}
+func (this *GameState) tryPick(a int) bool {
+	x := this.Agents[a].X
+	y := this.Agents[a].Y
+	if this.Agents[a].Carrying || this.Terrain[y][x]<2 {
+		fmt.Printf("player %v cant pick", a)
+		return false
+	}
+	//this.Terrain[y][x] -=1
+	this.changeMap(-1, x, y)
+	this.Agents[a].Carrying = true
+	fmt.Printf("player %v picking", a)
+	return true
+}
+func (this *GameState) tryDrop(a int) bool {
+	x := this.Agents[a].X
+	y := this.Agents[a].Y
+	if this.Agents[a].Carrying == false{
+		return false
+	}
+	//this.Terrain[y][x] +=1
+	this.changeMap(1, x, y)
+	this.Agents[a].Carrying = false
+	return true
+}
+func (this *GameState) tryMove(a, dx, dy int) bool{
+	nx := this.Agents[a].X + dx
+	ny := this.Agents[a].Y + dy
+	// check bounds
+	if (nx<0 || nx>=len(this.Terrain) || ny<0 || ny>=len(this.Terrain)) {
+		return false
+	}
+	// collide with other agents
+	for i := 0; i<len(this.Agents); i++ {
+		if a != i {
+			if nx == this.Agents[i].X && ny == this.Agents[i].Y {
+				return false
+			}
+		}
+	}
+	// collide with unpassable tiles
+	if this.Terrain[ny][nx] == 0 {
+		return false
+	}
+	
+	// move is valid!
+	this.Agents[a].X = nx
+	this.Agents[a].Y = ny
+	return true
+}
 
-	/* for i:=0; i<9; i++ {
-		x := this.Agents[i].X
-		x = x + rand.Intn(3) -1
-		if x<0 {
-			x=0
-		} else if x>=9 {
-			x=8
-		}
-		y := this.Agents[i].Y
-		y = y + rand.Intn(3) -1
-		if y<0 {
-			y=0
-		} else if y>=9 {
-			y=8
-		}
-		this.Agents[i].X = x
-		this.Agents[i].Y = y
-	} */
+
+func (this *GameState) changeMap(delta, x, y int) {
+	this.Terrain[y][x] += delta
+	this.Changes = append(this.Changes, mapChange{x,y,this.Terrain[y][x],60})
 }
 
 type Agent struct {
 	X int
 	Y int
+	Active bool
+	Carrying bool
 }
 
-func Game() GameState{
-	var terrain = createMap(9, 9)
-	printGrid(terrain)
+func Game(playerNum, mapSize int) GameState{
+	var terrain = createMap(mapSize, mapSize)
+	var changes []mapChange
 	var agents []Agent
-	for i:=0; i<9; i++ {
-		a := Agent{rand.Intn(9), rand.Intn(9)}
+	for i:=0; i<playerNum; i++ {
+		a := Agent{rand.Intn(mapSize), rand.Intn(mapSize), false, false}
 		agents = append(agents, a)
 	}
-	return GameState{terrain, agents}
+	
+	fmt.Printf("running %vx%v map with %v players.\n", mapSize, mapSize, playerNum)
+	return GameState{terrain, agents, changes}
 }
 
 func createMap(width, height int) [][]int {
@@ -77,28 +119,10 @@ func createMap(width, height int) [][]int {
 	for j := 0; j < height; j++ {
 		var s []int
 		for i := 0; i < width; i++ {
-			r := rand.Intn(9) + 1
+			r := rand.Intn(4)
 			s = append(s, r)
 		}
 		result = append(result, s)
 	}
 	return result
-}
-
-func printGrid( value [][]int ) {
-	for i:=0; i<9; i++ {
-		for j:=0; j<9; j++ {
-			fmt.Print("+-")
-		}
-		fmt.Print("+\n")
-		for j:=0; j<9; j++ {
-			fmt.Print("|")
-			fmt.Print(value[j][i])
-		}
-		fmt.Print("|\n")
-	}
-	for j:=0; j<9; j++ {
-		fmt.Print("+-")
-	}
-	fmt.Print("+\n")
 }

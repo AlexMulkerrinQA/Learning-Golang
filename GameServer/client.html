@@ -1,12 +1,13 @@
 <html>
 <head>
 <meta charset="utf-8">
+<Title>Go Multiplayer Game</Title>
 <style>
 div.webApplet {
 	clear:left; float:left; 
 	border-style:ridge; border-color:#e0f4ff; 
 	background-color:#d0e4fe; 
-	padding:0px 10px 10px 10px;
+	padding:10px 10px 10px 10px;
 	font-family: Arial;
 }
 </style>
@@ -19,6 +20,7 @@ const colour = ["#4A429C","#EFE7A5","#BDB552","#CFE7A5",
 const colourPlayer = ["#ff0000","#00ff00","#0000ff","#ffff00",
                 "#00ffff","#ff00ff","#ffffff","#000000",
                 "#ffaa00","#ff00aa",,"#aa00ff","#aaff00"];
+const direction = ["left","right","up","down"]
 				
 var terrain = [];
 var agents = [];
@@ -28,6 +30,8 @@ var ctx;
 var sqSize = 16;
 function init() {
 	c = document.getElementById("clientCanvas");
+	c.width = sqSize*13;
+	c.height = sqSize*13;
 	ctx = c.getContext("2d");
 	createNullMap();
 	refreshDisplay();
@@ -56,9 +60,20 @@ function init() {
             case 83: // s or down arrow
                 sendMoveCommand("down");
 				break;
+			case 13:
+			case 32: // returnkey or spacebar
+				sendActionCommand();
 		}
 	}
 	
+	// catch browser closing
+	window.onbeforeunload = function() {
+		freePlayerID();
+	}
+	// catch refreshes
+	window.onunload = function() {
+		freePlayerID();
+	}
 	
 	getServerMap();
 	getPlayerID();
@@ -78,6 +93,13 @@ function update() {
 	getServerAgents();
 }
 
+function updateMap(changes) {
+	for (var i=0; i<changes.length; i++) {
+		var cur = changes[i];
+		terrain[cur.Y][cur.X] = cur.Value;
+	}
+}
+
 function refreshDisplay() {
 	ctx.fillStyle="#ffffff";
 	ctx.fillRect(0,0,c.width,c.height);
@@ -86,8 +108,8 @@ function refreshDisplay() {
 }
 
 function drawMap() {
-	for (var j=0; j < 9; j++) {
-		for (var i=0; i < 9; i++) {
+	for (var j=0; j < terrain.length; j++) {
+		for (var i=0; i < terrain.length; i++) {
 			ctx.fillStyle=colour[terrain[j][i]];
 			ctx.fillRect(i*sqSize,j*sqSize,sqSize,sqSize);
 		}
@@ -98,7 +120,11 @@ function drawAgents() {
 	for (var i=0; i < agents.length; i++) {
 		var x = agents[i].X;
 		var y = agents[i].Y;
-		ctx.fillStyle=colourPlayer[i];
+		if (agents[i].Active) {
+			ctx.fillStyle=colourPlayer[i];
+		} else {
+			ctx.fillStyle="#aaaaaa"
+		}
 		ctx.fillRect(x*sqSize+2,y*sqSize+2,sqSize-4,sqSize-4);
 	}
 	ctx.fillStyle=colourPlayer[i];
@@ -127,8 +153,13 @@ function getServerAgents() {
     if (this.readyState == 4 && this.status == 200) {
       //document.getElementById("demo").innerHTML +=
       //"\n"+this.responseText;
-	  
-	  agents = JSON.parse(this.responseText);
+	  var parsed =JSON.parse(this.responseText)
+	  agents = parsed.Agents;
+	  var changes = parsed.Changes;
+	  if (changes){
+		updateMap(changes);
+		document.getElementById("demo").innerHTML = changes.length
+	  }
 	  refreshDisplay();
     }
   };
@@ -141,7 +172,7 @@ function getPlayerID() {
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
       document.getElementById("demo").innerHTML +=
-      "\n"+this.responseText;
+      "\nPlayer: "+this.responseText;
 	  
 	  playerID = this.responseText;
 	  refreshDisplay();
@@ -151,25 +182,51 @@ function getPlayerID() {
   xhttp.send();
 }
 
-function sendMoveCommand(move) {
+function freePlayerID() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
       document.getElementById("demo").innerHTML +=
       "\n"+this.responseText;
-	  refreshDisplay();
+	  //refreshDisplay();
     }
   };
+  xhttp.open("GET", "/leave?id="+playerID, true);
+  xhttp.send();
+}
+
+function sendActionCommand() {
+	var carrying = agents[playerID].Carrying;
+	if (carrying) {
+		sendMoveCommand("drop");
+	} else {
+		sendMoveCommand("pick");
+	}
+}
+
+function sendMoveCommand(move) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      //document.getElementById("demo").innerHTML +=
+      //"\n"+this.responseText;
+	  //refreshDisplay();
+    }
+  };
+  if (move == "random") {
+	move = direction[random(4)];
+  }
   xhttp.open("GET", "/move?id="+playerID+"&direc="+move, true);
   xhttp.send();
+}
+
+function random(num) {
+	return Math.floor(Math.random()*num);
 }
 </script>
 </head>
 <body onload="init()">
 <div class="webApplet">
-
-<h1>Multiplayer Roguelike</h1>
-
 <canvas id="clientCanvas">
 HTML5 Canvas goes here
 </canvas>
@@ -179,8 +236,9 @@ Server Requests:
 <button type="button" onclick="sendMoveCommand('up')">up</button>
 <button type="button" onclick="sendMoveCommand('down')">down</button>
 <button type="button" onclick="sendMoveCommand('right')">right</button>
+<button type="button" onclick="freePlayerID()">leave</button>
 <br>
-<textarea id="demo" rows="5" cols="40">Server response:</textarea>
+<textarea id="demo" rows="2" cols="40">Server response:</textarea>
 
 </div>
 
